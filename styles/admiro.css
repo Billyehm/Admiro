@@ -245,6 +245,7 @@
 .university-toolbar > span { color: var(--adm-muted); font-size: 14px; }
 .form-message { margin: -6px 0 17px; padding: 11px; border-radius: 9px; font-size: 14px; }
 .warning-message { background: var(--adm-warning-bg); color: var(--adm-warning); }
+.error-message { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
 .university-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; }
 .university-card { display: flex; min-height: 330px; flex-direction: column; padding: 20px; border: 1px solid var(--adm-border); border-radius: 17px; background: white; transition: .18s ease; }
 .university-card:hover { transform: translateY(-2px); box-shadow: var(--adm-shadow); }

@@ -1,11 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
+import { cache } from 'react'
 import type { Requirement, University, UniversityUpdate } from '@/lib/models'
 
-export async function getRequirements(userId: string): Promise<Requirement[]> {
+export const getRequirements = cache(async (userId: string): Promise<Requirement[]> => {
   const supabase = await createClient()
   const [{ data: definitions, error }, { data: states }, { data: documents }] = await Promise.all([
-    supabase.from('requirements').select('*').eq('is_active', true).order('display_order'),
-    supabase.from('user_requirements').select('*').eq('user_id', userId),
+    supabase.from('requirements').select('id,title,description,guidance,accepted_files,submission_type,updated_at').eq('is_active', true).order('display_order'),
+    supabase.from('user_requirements').select('requirement_id,document_id,response_text,status,note,updated_at').eq('user_id', userId),
     supabase.from('uploaded_documents').select('id,document_type,original_name,review_status,updated_at').eq('user_id', userId).order('updated_at', { ascending: false }),
   ])
   if (error) throw error
@@ -30,7 +31,7 @@ export async function getRequirements(userId: string): Promise<Requirement[]> {
       document: document ? { id: document.id, name: document.original_name, status: document.review_status } : null,
     }
   })
-}
+})
 
 export async function getRequirement(userId: string, requirementId: string) {
   const requirement = (await getRequirements(userId)).find((item) => item.id === requirementId) ?? null
@@ -41,12 +42,12 @@ export async function getRequirement(userId: string, requirementId: string) {
   return { ...requirement, document: { ...requirement.document, previewUrl: signed?.signedUrl ?? null } }
 }
 
-export async function getUniversities(userId: string): Promise<University[]> {
+export const getUniversities = cache(async (userId: string): Promise<University[]> => {
   const supabase = await createClient()
   const [{ data: universities, error }, { data: selections }, { data: updates }] = await Promise.all([
-    supabase.from('universities').select('*').eq('is_active', true).order('name'),
+    supabase.from('universities').select('id,name,short_name,location,description,programmes,application_deadline').eq('is_active', true).order('name').range(0, 99),
     supabase.from('university_selections').select('university_id').eq('user_id', userId),
-    supabase.from('university_updates').select('university_id,title,published_at').order('published_at', { ascending: false }),
+    supabase.from('university_updates').select('university_id,title,published_at').order('published_at', { ascending: false }).limit(100),
   ])
   if (error) throw error
   const selected = new Set((selections ?? []).map((item) => item.university_id))
@@ -61,7 +62,7 @@ export async function getUniversities(userId: string): Promise<University[]> {
     selected: selected.has(university.id),
     latestUpdate: (updates ?? []).find((item) => item.university_id === university.id)?.title ?? null,
   }))
-}
+})
 
 export async function getUniversity(userId: string, universityId: string) {
   const [universities, updates] = await Promise.all([getUniversities(userId), getUniversityUpdates(userId)])
@@ -71,7 +72,7 @@ export async function getUniversity(userId: string, universityId: string) {
 export async function getUniversityUpdates(userId: string): Promise<UniversityUpdate[]> {
   const supabase = await createClient()
   const [{ data: updates, error }, { data: universities }, { data: selections }] = await Promise.all([
-    supabase.from('university_updates').select('*').order('published_at', { ascending: false }),
+    supabase.from('university_updates').select('id,university_id,title,description,category,published_at').order('published_at', { ascending: false }).range(0, 49),
     supabase.from('universities').select('id,name'),
     supabase.from('university_selections').select('university_id').eq('user_id', userId),
   ])
@@ -81,22 +82,33 @@ export async function getUniversityUpdates(userId: string): Promise<UniversityUp
   return (updates ?? []).map((update) => ({ id: update.id, universityId: update.university_id, university: update.university_id ? universityMap.get(update.university_id) || 'University' : 'Admiro', title: update.title, description: update.description, category: update.category, publishedAt: update.published_at, selected: update.university_id ? selected.has(update.university_id) : true }))
 }
 
-export async function getNotifications(userId: string) {
+export async function getNotifications(userId: string, pageSize = 50) {
   const supabase = await createClient()
   const [{ data: notifications, error }, { data: preferences }] = await Promise.all([
-    supabase.from('notifications').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+    supabase.from('notifications').select('id,type,title,body,href,created_at,read_at').eq('user_id', userId).order('created_at', { ascending: false }).range(0, pageSize - 1),
     supabase.from('notification_preferences').select('preferences').eq('user_id', userId).maybeSingle(),
   ])
   if (error) throw error
   return { notifications: notifications ?? [], preferences: preferences?.preferences ?? {} }
 }
 
+export const getUnreadNotificationCount = cache(async (userId: string) => {
+  const supabase = await createClient()
+  const { count, error } = await supabase
+    .from('notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .is('read_at', null)
+  if (error) throw error
+  return count ?? 0
+})
+
 export async function getApplicantAccount(userId: string) {
   const supabase = await createClient()
   const [{ data: user, error }, { data: profile }, { data: application }] = await Promise.all([
-    supabase.from('users').select('*').eq('id', userId).single(),
-    supabase.from('user_profiles').select('*').eq('user_id', userId).single(),
-    supabase.from('applications').select('*').eq('user_id', userId).maybeSingle(),
+    supabase.from('users').select('id,email,role,is_active,created_at,updated_at').eq('id', userId).single(),
+    supabase.from('user_profiles').select('user_id,full_name,phone,date_of_birth,application_number,avatar_path,created_at,updated_at').eq('user_id', userId).single(),
+    supabase.from('applications').select('id,user_id,jamb_registration_number,state_of_residence,status,payment_status,payment_amount,created_at,updated_at').eq('user_id', userId).maybeSingle(),
   ])
   if (error) throw error
   return { user, profile, application }
@@ -104,6 +116,6 @@ export async function getApplicantAccount(userId: string) {
 
 export async function getActiveSystemNotice() {
   const supabase = await createClient()
-  const { data } = await supabase.from('system_notices').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(1).maybeSingle()
+  const { data } = await supabase.from('system_notices').select('id,title,body,created_at').eq('is_active', true).order('created_at', { ascending: false }).limit(1).maybeSingle()
   return data
 }

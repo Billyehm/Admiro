@@ -641,6 +641,12 @@ cross join public.requirements r
 where u.role = 'applicant' and r.is_active
 on conflict (user_id, requirement_id) do nothing;
 
+-- Navigation queries: keep per-user lists and review queues index-backed as data grows.
+create index if not exists uploaded_documents_user_submitted_at_idx on public.uploaded_documents(user_id, submitted_at desc);
+create index if not exists support_tickets_user_updated_at_idx on public.support_tickets(user_id, updated_at desc);
+create index if not exists support_tickets_assignee_updated_at_idx on public.support_tickets(assigned_to, updated_at desc);
+create index if not exists notifications_user_unread_created_at_idx on public.notifications(user_id, created_at desc) where read_at is null;
+
 -- Admin-managed application requirements.
 alter table public.requirements add column if not exists submission_type text not null default 'file' check (submission_type in ('file', 'text', 'both'));
 alter table public.user_requirements add column if not exists response_text text;

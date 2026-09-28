@@ -7,10 +7,11 @@ import type { Json, TableRow } from '@/lib/database.types'
 
 type Channel = { sms: boolean; email: boolean }
 type Preferences = Record<string, Channel>
+type NotificationItem = Pick<TableRow<'notifications'>, 'id' | 'type' | 'title' | 'body' | 'href' | 'created_at' | 'read_at'>
 const defaults: Preferences = { application: { sms: true, email: true }, university: { sms: false, email: true }, deadline: { sms: true, email: true }, action: { sms: true, email: true }, completion: { sms: false, email: true } }
 const iconFor = (type: string) => type === 'Action required' ? AlertCircle : type === 'University update' ? University : type === 'Document update' ? FileCheck2 : Radio
 
-export default function NotificationsPanel({ initialItems, initialPreferences }: { initialItems: TableRow<'notifications'>[]; initialPreferences: Json }) {
+export default function NotificationsPanel({ initialItems, initialPreferences }: { initialItems: NotificationItem[]; initialPreferences: Json }) {
   const [items, setItems] = useState(initialItems)
   const [tab, setTab] = useState<'notifications' | 'preferences'>('notifications')
   const [preferences, setPreferences] = useState<Preferences>(() => typeof initialPreferences === 'object' && initialPreferences && !Array.isArray(initialPreferences) ? { ...defaults, ...(initialPreferences as Preferences) } : defaults)

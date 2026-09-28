@@ -10,14 +10,14 @@ const nav = [
   { href: '/dashboard/requirements', label: 'Requirement', icon: FileCheck2 },
   { href: '/dashboard/universities', label: 'Universities', icon: Building2 },
   { href: '/dashboard/updates', label: 'Updates', icon: GraduationCap },
-  { href: '/dashboard/notifications', label: 'Notifications', icon: Bell, count: 2 },
+  { href: '/dashboard/notifications', label: 'Notifications', icon: Bell },
 ]
 
 function isActive(pathname: string, href: string) {
   return href === '/dashboard' ? pathname === href : pathname.startsWith(href)
 }
 
-export default function Sidebar({ open, onClose, name }: { open: boolean; onClose: () => void; name: string }) {
+export default function Sidebar({ open, onClose, name, unreadNotifications }: { open: boolean; onClose: () => void; name: string; unreadNotifications: number }) {
   const pathname = usePathname()
   return (
     <>
@@ -31,9 +31,9 @@ export default function Sidebar({ open, onClose, name }: { open: boolean; onClos
             <button className="sidebar-close" aria-label="Close navigation" onClick={onClose}><X /></button>
           </div>
           <nav className="adm-nav" aria-label="Student navigation">
-            {nav.map(({ href, label, icon: Icon, count }) => (
+            {nav.map(({ href, label, icon: Icon }) => (
               <Link key={href} href={href} onClick={onClose} className={`adm-nav-item ${isActive(pathname, href) ? 'active' : ''}`}>
-                <Icon aria-hidden="true" /><span>{label}</span>{count ? <span className="nav-count">{count}</span> : null}
+                <Icon aria-hidden="true" /><span>{label}</span>{href === '/dashboard/notifications' && unreadNotifications > 0 ? <span className="nav-count">{unreadNotifications > 99 ? '99+' : unreadNotifications}</span> : null}
               </Link>
             ))}
           </nav>

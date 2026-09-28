@@ -10,7 +10,7 @@ const titles: Record<string, string> = {
   '/dashboard/notifications': 'Notifications', '/dashboard/profile': 'Student Profile', '/dashboard/settings': 'Settings', '/dashboard/support': 'Help & Support', '/dashboard/payment': 'Application Payment',
 }
 
-export default function Topbar({ onMenu, name }: { onMenu: () => void; name: string }) {
+export default function Topbar({ onMenu, name, unreadNotifications }: { onMenu: () => void; name: string; unreadNotifications: number }) {
   const pathname = usePathname()
   const title = titles[pathname] ?? (pathname.startsWith('/dashboard/documents/') ? 'Document Upload' : pathname.startsWith('/dashboard/requirements/') ? 'Requirement Details' : pathname.startsWith('/dashboard/universities/') ? 'University Details' : 'Admiro')
   return (
@@ -21,7 +21,7 @@ export default function Topbar({ onMenu, name }: { onMenu: () => void; name: str
       </div>
       <div className="topbar-actions">
         <button className="icon-btn topbar-search" aria-label="Search"><Search /></button>
-        <Link className="icon-btn notification-button" aria-label="Notifications, 2 unread" href="/dashboard/notifications"><Bell /><span>2</span></Link>
+        <Link className="icon-btn notification-button" aria-label={unreadNotifications ? `Notifications, ${unreadNotifications} unread` : 'Notifications'} href="/dashboard/notifications"><Bell />{unreadNotifications > 0 && <span>{unreadNotifications > 99 ? '99+' : unreadNotifications}</span>}</Link>
         <Link href="/dashboard/profile" className="topbar-user"><span className="avatar avatar-small">{name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</span><span><strong>{name.split(' ')[0]}</strong><small>Student</small></span></Link>
       </div>
     </header>

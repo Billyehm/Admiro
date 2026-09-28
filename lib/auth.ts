@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { cache } from 'react'
 import type { AppRole } from '@/lib/database.types'
 import { createClient } from '@/lib/supabase/server'
 
@@ -9,7 +10,7 @@ export type AuthenticatedUser = {
   displayName: string
 }
 
-export async function requireUser(): Promise<AuthenticatedUser> {
+export const requireUser = cache(async (): Promise<AuthenticatedUser> => {
   const supabase = await createClient()
   const { data } = await supabase.auth.getClaims()
   const id = data?.claims?.sub
@@ -29,9 +30,9 @@ export async function requireUser(): Promise<AuthenticatedUser> {
     .maybeSingle()
 
   return { id: user.id, email: user.email, role: user.role, displayName: profile?.full_name || user.email }
-}
+})
 
-export async function requireStaff(): Promise<AuthenticatedUser> {
+export const requireStaff = cache(async (): Promise<AuthenticatedUser> => {
   const user = await requireUser()
   const supabase = await createClient()
   const { data: adminUser } = await supabase
@@ -46,7 +47,7 @@ export async function requireStaff(): Promise<AuthenticatedUser> {
   if (!role || !['admin', 'support_agent'].includes(role.name)) redirect('/dashboard')
 
   return { ...user, role: role.name, displayName: adminUser.display_name }
-}
+})
 
 export async function requireAdmin() {
   const user = await requireStaff()
